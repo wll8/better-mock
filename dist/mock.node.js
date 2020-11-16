@@ -1,5 +1,5 @@
 /*!
-  * better-mock v0.3.0 (mock.node.js)
+  * better-mock v0.3.1 (mock.node.js)
   * (c) 2019-2020 lavyun@163.com
   * Released under the MIT License.
   */
@@ -100,8 +100,66 @@ var createCustomEvent = function (type, bubbles, cancelable, detail) {
         return event_1;
     }
 };
+/**
+ * 同步执行异步函数, 入参和出参需要可序列化, 不会输出出参数之外的其他信息
+ * @param fn 要运行的函数
+ * @return {function} 接收原参数, 返回 {res, err}
+ */
+function asyncTosync(fn) {
+    return function () {
+        var args = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+            args[_i] = arguments[_i];
+        }
+        var _a = require("fs"), writeFileSync = _a.writeFileSync, readFileSync = _a.readFileSync;
+        var fnStr = fn.toString();
+        var tempDir = (__dirname || require("os").tmpdir()).replace(/\\/g, "/");
+        var fileObj = {
+            fnFile: createNewFile(tempDir, "fn.js"),
+            resFile: createNewFile(tempDir, "res.log"),
+            errFile: createNewFile(tempDir, "err.log"),
+        };
+        filesCreateOrRemove(fileObj, "create");
+        var argsString = args.map(function (arg) { return JSON.stringify(arg); }).join(', ');
+        var codeString = "\n      const { writeFileSync } = require('fs')\n      const fn = " + fnStr + "\n      new Promise(() => {\n        fn(" + argsString + ")\n          .then((output = '') => {\n            writeFileSync(\"" + fileObj.resFile + "\", output, 'utf8')\n          })\n          .catch((error = '') => {\n            writeFileSync(\"" + fileObj.errFile + "\", error, 'utf8')\n          })\n        }\n      )\n    ";
+        writeFileSync(fileObj.fnFile, codeString, "utf8");
+        require("child_process").execSync("\"" + process.execPath + "\" " + fileObj.fnFile);
+        var res = readFileSync(fileObj.resFile, "utf8");
+        var err = readFileSync(fileObj.errFile, "utf8");
+        filesCreateOrRemove(fileObj, "remove");
+        return { res: res, err: err };
+    };
+}
+/**
+ * 根据 dirName 和 fileName 返回一个当前目录不存在的文件名
+ * @param dirName 目录
+ * @param fileName 名称
+ * @return {stirng} 例 `${dirName}/temp_${Date.now()}.${fileName}`
+ */
+function createNewFile(dirName, fileName) {
+    var newFile = dirName + "/temp_" + Date.now() + "." + fileName;
+    return require("fs").existsSync(newFile) === true ? createNewFile(dirName, fileName) : newFile;
+}
+/**
+ * 创建或删除一组文件
+ * @param objOrArr {object|number} 要操作的内容
+ * @param action {stirng} 操作方式 create remove
+ */
+function filesCreateOrRemove(objOrArr, action) {
+    var _a = require('fs'), writeFileSync = _a.writeFileSync, unlinkSync = _a.unlinkSync;
+    Object.keys(objOrArr).forEach(function (key) {
+        var name = objOrArr[key];
+        if (action === "create") {
+            writeFileSync(name, "", "utf8");
+        }
+        if (action === "remove") {
+            unlinkSync(name);
+        }
+    });
+}
 
 var Util = /*#__PURE__*/Object.freeze({
+  __proto__: null,
   type: type,
   isDef: isDef,
   isString: isString,
@@ -115,7 +173,10 @@ var Util = /*#__PURE__*/Object.freeze({
   heredoc: heredoc,
   noop: noop,
   assert: assert,
-  createCustomEvent: createCustomEvent
+  createCustomEvent: createCustomEvent,
+  asyncTosync: asyncTosync,
+  createNewFile: createNewFile,
+  filesCreateOrRemove: filesCreateOrRemove
 });
 
 /*! *****************************************************************************
@@ -279,6 +340,7 @@ var range = function (start, stop, step) {
 };
 
 var basic = /*#__PURE__*/Object.freeze({
+  __proto__: null,
   boolean: boolean,
   bool: bool,
   natural: natural,
@@ -423,6 +485,7 @@ var now = function (unit, format) {
 };
 
 var date$1 = /*#__PURE__*/Object.freeze({
+  __proto__: null,
   date: date,
   time: time,
   datetime: datetime,
@@ -490,6 +553,7 @@ var shuffle = function (arr, min, max) {
 };
 
 var helper = /*#__PURE__*/Object.freeze({
+  __proto__: null,
   capitalize: capitalize,
   upper: upper,
   lower: lower,
@@ -571,13 +635,12 @@ var dataImage = function (size, text) {
     var height = parseInt(sizes[1], 10);
     assert(isNumber(width) && isNumber(height), 'Invalid size, expected INTxINT, e.g. 300x400');
     {
-        return createNodeDataImage(width, height, background, text);
+        return asyncTosync(createNodeDataImage)(width, height, background, text).res;
     }
 };
 // node 端生成 base64 图片
 function createNodeDataImage(width, height, background, text) {
     var Jimp = require('jimp');
-    var sync = require('promise-synchronizer');
     // 计算字体的合适大小
     var jimpFontSizePool = [128, 64, 32, 16];
     var expectFontSize = Math.min(width, height) / 3;
@@ -606,7 +669,7 @@ function createNodeDataImage(width, height, background, text) {
         });
     });
     try {
-        return sync(generateImage);
+        return generateImage;
     }
     catch (err) {
         throw err;
@@ -614,6 +677,7 @@ function createNodeDataImage(width, height, background, text) {
 }
 
 var image$1 = /*#__PURE__*/Object.freeze({
+  __proto__: null,
   image: image,
   img: img,
   dataImage: dataImage
@@ -744,6 +808,7 @@ var _goldenRatioColor = function (saturation, value) {
 };
 
 var color$1 = /*#__PURE__*/Object.freeze({
+  __proto__: null,
   color: color,
   hex: hex,
   rgb: rgb,
@@ -957,6 +1022,7 @@ var ctitle = function (min, max) {
 };
 
 var text = /*#__PURE__*/Object.freeze({
+  __proto__: null,
   paragraph: paragraph,
   cparagraph: cparagraph,
   sentence: sentence,
@@ -1045,6 +1111,7 @@ var cname = function () {
 };
 
 var name$1 = /*#__PURE__*/Object.freeze({
+  __proto__: null,
   first: first,
   last: last,
   name: name,
@@ -1103,6 +1170,7 @@ var ip = function () {
 };
 
 var web = /*#__PURE__*/Object.freeze({
+  __proto__: null,
   url: url,
   protocol: protocol,
   domain: domain,
@@ -6480,6 +6548,7 @@ var zip = function (len) {
 };
 
 var address = /*#__PURE__*/Object.freeze({
+  __proto__: null,
   region: region,
   province: province,
   city: city,
@@ -6557,6 +6626,7 @@ var phone = function () {
 };
 
 var misc = /*#__PURE__*/Object.freeze({
+  __proto__: null,
   guid: guid,
   uuid: uuid,
   id: id,
@@ -6647,13 +6717,15 @@ var PRINTABLE = ascii(32, 126);
 var SPACE = ' \f\n\r\t\v\u00A0\u2028\u2029';
 var CHARACTER_CLASSES = {
     '\\w': LOWER + UPPER + NUMBER + '_',
-    '\\W': OTHER.replace('_', ''), '\\s': SPACE, '\\S': function () {
+    '\\W': OTHER.replace('_', ''), '\\s': SPACE,
+    '\\S': function () {
         var result = PRINTABLE;
         for (var i = 0; i < SPACE.length; i++) {
             result = result.replace(SPACE[i], '');
         }
         return result;
-    }(), '\\d': NUMBER, '\\D': LOWER + UPPER + OTHER
+    }(),
+    '\\d': NUMBER, '\\D': LOWER + UPPER + OTHER
 };
 function ascii(from, to) {
     var result = '';
@@ -6705,8 +6777,6 @@ var handler = {
                 return random.pick((LOWER + UPPER + NUMBER).split(''));
             case 'non-word': // \W [^a-zA-Z0-9]
                 return random.pick(OTHER.replace('_', '').split(''));
-            case 'null-character':
-                break;
         }
         return node.body || node.text;
     },
@@ -8321,7 +8391,7 @@ var Mock = {
     mock: mock,
     heredoc: heredoc,
     setup: setting.setup.bind(setting),
-    version: '0.3.0'
+    version: '0.3.1'
 };
 // Mock.mock( template )
 // 根据数据模板生成模拟数据。

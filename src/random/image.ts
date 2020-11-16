@@ -1,6 +1,6 @@
 // image
 import { pick } from './helper'
-import { isNumber, assert } from '../utils'
+import { isNumber, assert, asyncTosync } from '../utils'
 
 // 常见图片尺寸
 const imageSize: string[] = [
@@ -80,7 +80,7 @@ export const dataImage = function (size?: string, text?: string): string {
   if (process.env.PLATFORM_BROWSER) {
     return createBrowserDataImage(width, height, background, text!)
   } else if (process.env.PLATFORM_NODE) {
-    return createNodeDataImage(width, height, background, text!)
+    return asyncTosync(createNodeDataImage)(width, height, background, text!).res
   } else {
     // 小程序无法直接生成 base64 图片，返回空字符串
     return ''
@@ -110,7 +110,6 @@ function createBrowserDataImage (width: number, height: number, background: stri
 // node 端生成 base64 图片
 function createNodeDataImage (width: number, height: number, background: string, text: string) {
   const Jimp = require('jimp')
-  const sync = require('promise-synchronizer')
 
   // 计算字体的合适大小
   const jimpFontSizePool = [128, 64, 32, 16]
@@ -142,7 +141,7 @@ function createNodeDataImage (width: number, height: number, background: string,
   })
 
   try {
-    return sync(generateImage)
+    return generateImage
   } catch (err) {
     throw err
   }

@@ -94,3 +94,72 @@ export const createCustomEvent = function<T = any> (type: string, bubbles = fals
     return event
   }
 }
+
+/**
+ * 同步执行异步函数, 入参和出参需要可序列化, 不会输出出参数之外的其他信息
+ * @param fn 要运行的函数
+ * @return {function} 接收原参数, 返回 {res, err}
+ */
+export function asyncTosync (fn) {
+  return (...args) => {
+    const { writeFileSync, readFileSync } = require(`fs`)
+    const fnStr = fn.toString()
+    const tempDir = (__dirname || require(`os`).tmpdir()).replace(/\\/g, `/`)
+    const fileObj = {
+      fnFile: createNewFile(tempDir, `fn.js`),
+      resFile: createNewFile(tempDir, `res.log`),
+      errFile: createNewFile(tempDir, `err.log`),
+    }
+    filesCreateOrRemove(fileObj, `create`)
+    const argsString = args.map(arg => JSON.stringify(arg)).join(', ');
+    const codeString = `
+      const { writeFileSync } = require('fs')
+      const fn = ${fnStr}
+      new Promise(() => {
+        fn(${argsString})
+          .then((output = '') => {
+            writeFileSync("${fileObj.resFile}", output, 'utf8')
+          })
+          .catch((error = '') => {
+            writeFileSync("${fileObj.errFile}", error, 'utf8')
+          })
+        }
+      )
+    `
+    writeFileSync(fileObj.fnFile, codeString, `utf8`)
+    require(`child_process`).execSync(`"${process.execPath}" ${fileObj.fnFile}`)
+    const res = readFileSync(fileObj.resFile, `utf8`)
+    const err = readFileSync(fileObj.errFile, `utf8`)
+    filesCreateOrRemove(fileObj, `remove`)
+    return {res, err}
+  }
+}
+
+/**
+ * 根据 dirName 和 fileName 返回一个当前目录不存在的文件名
+ * @param dirName 目录
+ * @param fileName 名称
+ * @return {stirng} 例 `${dirName}/temp_${Date.now()}.${fileName}`
+ */
+export function createNewFile (dirName, fileName) {
+  const newFile = `${dirName}/temp_${Date.now()}.${fileName}`
+  return require(`fs`).existsSync(newFile) === true ? createNewFile(dirName, fileName) : newFile
+}
+
+/**
+ * 创建或删除一组文件
+ * @param objOrArr {object|number} 要操作的内容
+ * @param action {stirng} 操作方式 create remove
+ */
+export function filesCreateOrRemove (objOrArr, action) {
+  const {writeFileSync, unlinkSync} = require('fs')
+  Object.keys(objOrArr).forEach(key => {
+    const name = objOrArr[key]
+    if (action === `create`) {
+      writeFileSync(name, ``, `utf8`)
+    }
+    if (action === `remove`) {
+      unlinkSync(name)
+    }
+  })
+}
