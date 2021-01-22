@@ -18,7 +18,7 @@ const imageSize: string[] = [
  * @param format 图片格式
  * @param text 文字
  */
-export const image = function (size = '', background = '', foreground = '', format = '', text = ''): string {
+export const image = function (size = '', background = '', foreground = '', format = 'jpg', text = ''): string {
   // Random.image( size, background, foreground, text )
   if (arguments.length === 4) {
     text = format
@@ -45,7 +45,7 @@ export const image = function (size = '', background = '', foreground = '', form
     foreground = foreground.slice(1)
   }
 
-  return format 
+  return format
     ? (
       'https://dummyimage.com/' +
       size +
@@ -130,7 +130,7 @@ function createNodeDataImage (width: number, height: number, background: string,
           // 文字在画布上的目标 x, y
           const targetX = width <= measureWidth ? 0 : (width - measureWidth) / 2
           const targetY = height <= measureHeight ? 0 : (height - measureHeight) / 2
-          
+
           image.print(font, targetX, targetY, text)
           image.getBufferAsync(Jimp.MIME_PNG).then(buffer => {
             resolve('data:image/png;base64,' + buffer.toString('base64'))

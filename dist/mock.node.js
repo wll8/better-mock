@@ -1,10 +1,6 @@
 /*!
   * better-mock v0.3.1 (mock.node.js)
-<<<<<<< HEAD
-  * (c) 2019-2020 lavyun@163.com
-=======
   * (c) 2019-2021 lavyun@163.com
->>>>>>> fed1697c64750f7070230670d8c0378024630b09
   * Released under the MIT License.
   */
 
@@ -587,7 +583,7 @@ var image = function (size, background, foreground, format, text) {
     if (size === void 0) { size = ''; }
     if (background === void 0) { background = ''; }
     if (foreground === void 0) { foreground = ''; }
-    if (format === void 0) { format = ''; }
+    if (format === void 0) { format = 'jpg'; }
     if (text === void 0) { text = ''; }
     // Random.image( size, background, foreground, text )
     if (arguments.length === 4) {
