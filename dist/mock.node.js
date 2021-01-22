@@ -1,6 +1,10 @@
 /*!
   * better-mock v0.3.1 (mock.node.js)
+<<<<<<< HEAD
   * (c) 2019-2020 lavyun@163.com
+=======
+  * (c) 2019-2021 lavyun@163.com
+>>>>>>> fed1697c64750f7070230670d8c0378024630b09
   * Released under the MIT License.
   */
 
@@ -7886,7 +7890,6 @@ var handler$1 = {
     },
     // 处理占位符，转换为最终值
     placeholder: function (placeholder, obj, templateContext, options) {
-        debugger;
         // 1 key, 2 params
         // regexp init
         constant.RE_PLACEHOLDER.exec('');
